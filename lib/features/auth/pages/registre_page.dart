@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:odc_talent/features/apprenants/pages/dasboard.dart';
 
 // ============================================================================
 // SERVICE HTTP - CONNEXION SPRING BOOT
@@ -240,7 +241,7 @@ class _RegisterApprenantPageState extends State<RegisterApprenantPage> {
                   const SizedBox(height: 8),
                   _buildTextFormField(
                     controller: _telephoneController,
-                    hintText: '+225 07 00 00 00 00',
+                    hintText: ' 70 00 00 00',
                     prefixIcon: Icons.phone_outlined,
                     keyboardType: TextInputType.phone,
                     validator: (val) {
@@ -288,6 +289,38 @@ class _RegisterApprenantPageState extends State<RegisterApprenantPage> {
                   ),
 
                   const SizedBox(height: 35),
+
+
+
+
+
+
+//button en haut du page pour redirection
+                  TextButton(
+  onPressed: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const DashboardApprenantPage(),
+      ),
+    );
+  },
+  child: const Text(
+    'Aller à la page >',
+    style: TextStyle(
+      color: Color(0xFFFF6501),
+      fontSize: 13,
+      fontWeight: FontWeight.bold,
+    ),
+  ),
+),
+
+
+
+
+
+
+
 
                   // 8. Bouton Suivant (Soumission)
                   SizedBox(
