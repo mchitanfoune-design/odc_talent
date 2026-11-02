@@ -14,18 +14,26 @@ dependencies:
   # Icônes iOS par défaut
   cupertino_icons: ^1.0.8
 
-  # Package pour la connexion API Spring Boot
-  http: ^1.2.0
+  go_router: ^13.0.0
+
+  # Requêtes HTTP avancées (avec intercepteurs pour le JWT)
+  dio: ^5.4.0
+
+  # Stockage sécurisé du token JWT sur l'appareil
+  flutter_secure_storage: ^9.0.0
+
+  # Gestion de l'état (simple et efficace pour l'apprenant)
+  provider: ^6.1.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  flutter_lints: ^2.0.0
+  flutter_lints: ^3.0.0
 
 flutter:
   uses-material-design: true
 
-  # Déclaration des dossiers d'images
+  # Déclaration des dossiers d'images et assets
   assets:
     - assets/images/

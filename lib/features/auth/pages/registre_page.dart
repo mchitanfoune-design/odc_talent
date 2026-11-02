@@ -1,48 +1,8 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:odc_talent/features/apprenants/pages/dasboard.dart';
+import 'package:odc_talent/core/constants/constant.dart';
+import 'package:odc_talent/features/auth/pages/login_page.dart';
+import 'package:odc_talent/features/auth/services/auth_service.dart';
 
-// ============================================================================
-// SERVICE HTTP - CONNEXION SPRING BOOT
-// ============================================================================
-class RegistrePage {
-  // Adresse IP de ton serveur Spring Boot (10.0.2.2 pour l'émulateur Android)
-  static const String baseUrl = 'http://10.0.2.2:8080/api/v1/auth';
-
-  static Future<http.Response> registerApprenant({
-    required String prenom,
-    required String nom,
-    required String email,
-    required String telephone,
-    required String role,
-    required String promotion,
-    required String formation,
-  }) async {
-    final Uri url = Uri.parse('$baseUrl/register');
-
-    final Map<String, String> headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
-
-    final String body = jsonEncode({
-      'prenom': prenom,
-      'nom': nom,
-      'email': email,
-      'telephone': telephone,
-      'role': role,
-      'promotion': promotion,
-      'formation': formation,
-    });
-
-    return await http.post(url, headers: headers, body: body);
-  }
-}
-
-// ============================================================================
-// PAGE D'INSCRIPTION APPRENANT ODC (DÉFILABLE ET FONCTIONNELLE)
-// ============================================================================
 class RegisterApprenantPage extends StatefulWidget {
   const RegisterApprenantPage({Key? key}) : super(key: key);
 
@@ -51,23 +11,22 @@ class RegisterApprenantPage extends StatefulWidget {
 }
 
 class _RegisterApprenantPageState extends State<RegisterApprenantPage> {
-  // Clé pour la validation du formulaire
   final _formKey = GlobalKey<FormState>();
 
-  // Contrôleurs des champs de texte
   final _prenomController = TextEditingController();
   final _nomController = TextEditingController();
   final _emailController = TextEditingController();
   final _telephoneController = TextEditingController();
-  final _profileController = TextEditingController(text: 'Apprenant ODC');
-  final _promotionController = TextEditingController();
-  final _formationController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
-  // État de chargement de l'API
+  final AuthService _authService = AuthService();
+
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
   bool _isLoading = false;
 
-  // Couleur principale Orange ODC
-  static const Color _primaryOrange = Color(0xFFFF6501);
+  static const Color _primaryOrange = AppColors.primaryOrange;
 
   @override
   void dispose() {
@@ -75,63 +34,76 @@ class _RegisterApprenantPageState extends State<RegisterApprenantPage> {
     _nomController.dispose();
     _emailController.dispose();
     _telephoneController.dispose();
-    _profileController.dispose();
-    _promotionController.dispose();
-    _formationController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  // ==========================================
-  // LOGIQUE DE SOUMISSION VERS SPRING BOOT
-  // ==========================================
   Future<void> _submitRegister() async {
     if (!_formKey.currentState!.validate()) return;
 
+    FocusScope.of(context).unfocus();
     setState(() => _isLoading = true);
 
     try {
-      final response = await RegistrePage.registerApprenant(
-        prenom: _prenomController.text.trim(),
+      final response = await _authService.register(
         nom: _nomController.text.trim(),
+        prenom: _prenomController.text.trim(),
         email: _emailController.text.trim(),
         telephone: _telephoneController.text.trim(),
-        role: _profileController.text.trim(),
-        promotion: _promotionController.text.trim(),
-        formation: _formationController.text.trim(),
+        password: _passwordController.text,
+        role: 'APPRENANT',
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        _showSnackBar("Compte Apprenant créé avec succès !");
-        if (mounted) {
-          Navigator.pushReplacementNamed(context, '/login');
-        }
-      } else {
-        final errorData = jsonDecode(response.body);
-        String errorMessage = "Erreur lors de l'inscription";
+      if (!mounted) return;
 
-        if (errorData is Map && errorData.containsKey('message')) {
-          errorMessage = errorData['message'];
-        } else if (errorData is String) {
-          errorMessage = errorData;
-        }
-
-        _showSnackBar(errorMessage, isError: true);
-      }
+      // Dialogue de félicitations et d'information
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: const [
+              Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 28),
+              SizedBox(width: 10),
+              Text('Inscription Réussie !', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Text(
+            'Félicitations ${response.prenom} ! Votre compte apprenant ODCTalent a été enregistré.\nUn email de confirmation vous a été envoyé.',
+            style: const TextStyle(fontSize: 14, height: 1.4, color: Colors.black87),
+          ),
+          actions: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _primaryOrange,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
+                );
+              },
+              child: const Text('Se connecter maintenant', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      );
     } catch (e) {
-      _showSnackBar("Impossible de contacter le serveur Spring Boot.", isError: true);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceAll('Exception: ', '')),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  void _showSnackBar(String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Colors.red : Colors.green,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
   }
 
   @override
@@ -141,220 +113,225 @@ class _RegisterApprenantPageState extends State<RegisterApprenantPage> {
       body: SafeArea(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Bouton retour
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.black, size: 28),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  // Logo ODC
-                  Center(
-                    child: Image.asset(
-                      'assets/images/logo.jpg',
-                      height: 90,
-                      filterQuality: FilterQuality.high,
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // En-tête : Retour + Titre ODCTalent
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black87, size: 20),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () => Navigator.pop(context),
                     ),
-                  ),
-
-                  const SizedBox(height: 25),
-
-                  // Titre
-                  const Text(
-                    'Créer votre compte',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  // Sous-titre
-                  const Text(
-                    'Remplissez les informations ci-dessous pour rejoindre la plateforme ODC.',
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: Colors.grey,
-                      height: 1.3,
-                    ),
-                  ),
-
-                  const SizedBox(height: 25),
-
-                  // 1. Champ Prénom
-                  _buildFieldLabel('Prénom', isRequired: true),
-                  const SizedBox(height: 8),
-                  _buildTextFormField(
-                    controller: _prenomController,
-                    hintText: 'Entrez votre prénom',
-                    prefixIcon: Icons.person_outline_rounded,
-                    validator: (val) => (val == null || val.trim().isEmpty) ? 'Veuillez entrer votre prénom' : null,
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // 2. Champ Nom
-                  _buildFieldLabel('Nom', isRequired: true),
-                  const SizedBox(height: 8),
-                  _buildTextFormField(
-                    controller: _nomController,
-                    hintText: 'Entrez votre nom',
-                    prefixIcon: Icons.person_outline_rounded,
-                    validator: (val) => (val == null || val.trim().isEmpty) ? 'Veuillez entrer votre nom' : null,
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // 3. Champ Email
-                  _buildFieldLabel('Email', isRequired: true),
-                  const SizedBox(height: 8),
-                  _buildTextFormField(
-                    controller: _emailController,
-                    hintText: 'exemple@odc.com',
-                    prefixIcon: Icons.mail_outline_rounded,
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (val) {
-                      if (val == null || val.trim().isEmpty) return 'Veuillez entrer votre email';
-                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(val.trim())) {
-                        return 'Veuillez entrer un email valide';
-                      }
-                      return null;
-                    },
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // 4. Champ Téléphone
-                  _buildFieldLabel('Téléphone', isRequired: true),
-                  const SizedBox(height: 8),
-                  _buildTextFormField(
-                    controller: _telephoneController,
-                    hintText: ' 70 00 00 00',
-                    prefixIcon: Icons.phone_outlined,
-                    keyboardType: TextInputType.phone,
-                    validator: (val) {
-                      if (val == null || val.trim().isEmpty) return 'Veuillez entrer votre numéro de téléphone';
-                      if (val.trim().length < 8) return 'Numéro de téléphone invalide';
-                      return null;
-                    },
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // 5. Champ Profil sélectionné (Fixe)
-                  _buildFieldLabel('Choissez votre profile', isRequired: false),
-                  const SizedBox(height: 8),
-                  _buildTextFormField(
-                    controller: _profileController,
-                    hintText: 'Apprenant ODC',
-                    prefixIcon: Icons.school_outlined,
-                    readOnly: true,
-                    validator: (val) => null,
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // 6. Champ Votre promotion
-                  _buildFieldLabel('Votre promotion', isRequired: false),
-                  const SizedBox(height: 8),
-                  _buildTextFormField(
-                    controller: _promotionController,
-                    hintText: 'Ex:Promotion 01',
-                    prefixIcon: Icons.verified_outlined,
-                    validator: (val) => (val == null || val.trim().isEmpty) ? 'Veuillez renseigner votre promotion' : null,
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // 7. Champ Formation
-                  _buildFieldLabel('Formation', isRequired: false),
-                  const SizedBox(height: 8),
-                  _buildTextFormField(
-                    controller: _formationController,
-                    hintText: 'Ex:Dev Mobile et web',
-                    prefixIcon: Icons.list_alt_rounded,
-                    validator: (val) => (val == null || val.trim().isEmpty) ? 'Veuillez renseigner votre formation' : null,
-                  ),
-
-                  const SizedBox(height: 35),
-
-
-
-
-
-
-//button en haut du page pour redirection
-                  TextButton(
-  onPressed: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const DashboardApprenantPage(),
-      ),
-    );
-  },
-  child: const Text(
-    'Aller à la page >',
-    style: TextStyle(
-      color: Color(0xFFFF6501),
-      fontSize: 13,
-      fontWeight: FontWeight.bold,
-    ),
-  ),
-),
-
-
-
-
-
-
-
-
-                  // 8. Bouton Suivant (Soumission)
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _primaryOrange,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25),
-                        ),
-                        elevation: 0,
+                    const SizedBox(width: 14),
+                    RichText(
+                      text: const TextSpan(
+                        children: [
+                          TextSpan(text: 'O', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: _primaryOrange)),
+                          TextSpan(text: 'DC', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black)),
+                          TextSpan(text: 'Talent', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: _primaryOrange)),
+                        ],
                       ),
-                      onPressed: _isLoading ? null : _submitRegister,
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 22,
-                              width: 22,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
-                            )
-                          : const Text(
-                              'Suivant',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
+                Center(
+                  child: Image.asset(
+                    'assets/images/logo.jpg',
+                    height: 70,
+                    fit: BoxFit.contain,
+                    filterQuality: FilterQuality.high,
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                const Text(
+                  'Créer votre compte',
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Rejoignez la communauté Orange Digital Center et développez votre carrière.',
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600, height: 1.3),
+                ),
+
+                const SizedBox(height: 24),
+
+                // 1. Prénom
+                _buildFieldLabel('Prénom'),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _prenomController,
+                  textInputAction: TextInputAction.next,
+                  validator: (val) => (val == null || val.trim().isEmpty) ? 'Veuillez saisir votre prénom' : null,
+                  decoration: _buildInputDecoration(hintText: 'Votre prénom', prefixIcon: Icons.person_outline_rounded),
+                ),
+                const SizedBox(height: 18),
+
+                // 2. Nom
+                _buildFieldLabel('Nom'),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _nomController,
+                  textInputAction: TextInputAction.next,
+                  validator: (val) => (val == null || val.trim().isEmpty) ? 'Veuillez saisir votre nom' : null,
+                  decoration: _buildInputDecoration(hintText: 'Votre nom', prefixIcon: Icons.person_outline_rounded),
+                ),
+                const SizedBox(height: 18),
+
+                // 3. Email
+                _buildFieldLabel('Email professionnel ou personnel'),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) return 'Veuillez saisir votre email';
+                    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                    if (!emailRegex.hasMatch(val.trim())) return 'Veuillez entrer une adresse email valide';
+                    return null;
+                  },
+                  decoration: _buildInputDecoration(hintText: 'exemple@odc.com', prefixIcon: Icons.mail_outline_rounded),
+                ),
+                const SizedBox(height: 18),
+
+                // 4. Téléphone
+                _buildFieldLabel('Numéro de téléphone'),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _telephoneController,
+                  keyboardType: TextInputType.phone,
+                  textInputAction: TextInputAction.next,
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) return 'Veuillez saisir votre numéro';
+                    if (val.trim().length < 8) return 'Numéro de téléphone invalide';
+                    return null;
+                  },
+                  decoration: _buildInputDecoration(hintText: '+223 70 00 00 00', prefixIcon: Icons.phone_outlined),
+                ),
+                const SizedBox(height: 18),
+
+                // 5. Mot de passe
+                _buildFieldLabel('Mot de passe'),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _passwordController,
+                  obscureText: _obscurePassword,
+                  textInputAction: TextInputAction.next,
+                  validator: (val) {
+                    if (val == null || val.isEmpty) return 'Veuillez définir un mot de passe';
+                    if (val.length < 6) return 'Le mot de passe doit comporter au moins 6 caractères';
+                    return null;
+                  },
+                  decoration: _buildInputDecoration(
+                    hintText: '••••••••',
+                    prefixIcon: Icons.lock_outline_rounded,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                        color: Colors.grey.shade600,
+                        size: 20,
+                      ),
+                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                     ),
                   ),
+                ),
+                const SizedBox(height: 18),
 
-                  const SizedBox(height: 25),
-                ],
-              ),
+                // 6. Confirmer le mot de passe
+                _buildFieldLabel('Confirmer le mot de passe'),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _confirmPasswordController,
+                  obscureText: _obscureConfirm,
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) => _submitRegister(),
+                  validator: (val) {
+                    if (val != _passwordController.text) return 'Les mots de passe ne correspondent pas';
+                    return null;
+                  },
+                  decoration: _buildInputDecoration(
+                    hintText: '••••••••',
+                    prefixIcon: Icons.lock_outline_rounded,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscureConfirm ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                        color: Colors.grey.shade600,
+                        size: 20,
+                      ),
+                      onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 30),
+
+                // 7. Bouton S'inscrire
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _primaryOrange,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
+                    ),
+                    onPressed: _isLoading ? null : _submitRegister,
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 22,
+                            width: 22,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                          )
+                        : const Text(
+                            'S\'inscrire',
+                            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // 8. Déjà un compte ? Se connecter
+                Center(
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (context) => const LoginPage()),
+                      );
+                    },
+                    child: RichText(
+                      text: TextSpan(
+                        text: 'Vous avez déjà un compte ? ',
+                        style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                        children: const [
+                          TextSpan(
+                            text: 'Se connecter',
+                            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+              ],
             ),
           ),
         ),
@@ -362,66 +339,45 @@ class _RegisterApprenantPageState extends State<RegisterApprenantPage> {
     );
   }
 
-  Widget _buildFieldLabel(String label, {bool isRequired = false}) {
-    return RichText(
-      text: TextSpan(
-        text: label,
-        style: const TextStyle(
-          color: Colors.black,
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-        ),
-        children: [
-          if (isRequired)
-            const TextSpan(
-              text: ' *',
-              style: TextStyle(color: _primaryOrange, fontWeight: FontWeight.bold),
-            ),
-        ],
-      ),
+  Widget _buildFieldLabel(String label) {
+    return Text(
+      label,
+      style: const TextStyle(color: Colors.black, fontSize: 14, fontWeight: FontWeight.w600),
     );
   }
 
-  Widget _buildTextFormField({
-    required TextEditingController controller,
+  InputDecoration _buildInputDecoration({
     required String hintText,
     required IconData prefixIcon,
-    required String? Function(String?) validator,
-    TextInputType keyboardType = TextInputType.text,
-    bool readOnly = false,
+    Widget? suffixIcon,
   }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      readOnly: readOnly,
-      validator: validator,
-      style: TextStyle(
-        color: readOnly ? Colors.grey[700] : Colors.black,
-        fontSize: 14,
+    return InputDecoration(
+      hintText: hintText,
+      hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+      prefixIcon: Icon(prefixIcon, color: Colors.grey.shade600, size: 20),
+      suffixIcon: suffixIcon,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.grey.shade300),
       ),
-      decoration: InputDecoration(
-        hintText: hintText,
-        hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-        prefixIcon: Icon(prefixIcon, color: _primaryOrange, size: 22),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        fillColor: readOnly ? const Color(0xFFF9F9F9) : Colors.white,
-        filled: true,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: _primaryOrange, width: 1.5),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.red),
-        ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: _primaryOrange, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.red.shade400),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.red.shade600, width: 1.5),
       ),
     );
   }

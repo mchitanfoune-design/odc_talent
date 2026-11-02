@@ -1,5 +1,6 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:odc_talent/core/constants/constant.dart';
+import 'package:odc_talent/features/apprenants/pages/dasboard.dart';
 import 'package:odc_talent/features/auth/services/CompExp.dart';
 
 class PortfolioFormPage extends StatefulWidget {
@@ -12,141 +13,180 @@ class PortfolioFormPage extends StatefulWidget {
 class _PortfolioFormPageState extends State<PortfolioFormPage> {
   final _formKey = GlobalKey<FormState>();
 
-  // Contrôleurs de texte
+  final _titreProfessionnelController = TextEditingController(text: 'Développeur Web & Mobile');
   final _aProposController = TextEditingController();
   final _experiencesController = TextEditingController();
   final _competencesController = TextEditingController();
 
-  bool _isLoading = false;
+  final CompExpApiService _apiService = CompExpApiService();
 
-  static const Color _primaryOrange = Color(0xFFFF6501);
+  bool _isLoading = false;
+  static const Color _primaryOrange = AppColors.primaryOrange;
 
   @override
   void dispose() {
+    _titreProfessionnelController.dispose();
     _aProposController.dispose();
     _experiencesController.dispose();
     _competencesController.dispose();
     super.dispose();
   }
 
-  // Envoi du formulaire vers le backend
   Future<void> _submitPortfolio() async {
     if (!_formKey.currentState!.validate()) return;
 
+    FocusScope.of(context).unfocus();
     setState(() => _isLoading = true);
 
     try {
-      final response = await Compexp.createPortfolio(
+      await _apiService.saveCompetencesAndExperiences(
+        titreProfessionnel: _titreProfessionnelController.text.trim(),
         aPropos: _aProposController.text.trim(),
         experiences: _experiencesController.text.trim(),
         competences: _competencesController.text.trim(),
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        _showSnackBar('Portfolio généré avec succès !');
-        // Redirection vers le profil ou le portfolio généré
-      } else {
-        final errorData = jsonDecode(response.body);
-        String message = errorData['message'] ?? 'Erreur lors de la création.';
-        _showSnackBar(message, isError: true);
-      }
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Profil et Portfolio initialisés avec succès !'),
+          backgroundColor: Color(0xFF10B981),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+      // Redirection vers le tableau de bord principal
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const DashboardApprenantPage()),
+        (route) => false,
+      );
     } catch (e) {
-      _showSnackBar('Impossible de contacter le serveur Spring Boot.', isError: true);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceAll('Exception: ', '')),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  void _showSnackBar(String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Colors.red : Colors.green,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black87, size: 20),
+                onPressed: () => Navigator.pop(context),
+              )
+            : null,
+        title: Image.asset(
+          'assets/images/logo.jpg',
+          height: 38,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => const Text(
+            'ODCTalent',
+            style: TextStyle(color: _primaryOrange, fontWeight: FontWeight.bold),
+          ),
+        ),
+        centerTitle: true,
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 1. Logo ODC
-                Center(
-                  child: Image.asset(
-                    'assets/images/logo.jpg', // Vérifie le chemin de ton logo
-                    height: 60,
-                    filterQuality: FilterQuality.high,
+                const SizedBox(height: 10),
+
+                // Titre & Consigne
+                const Text(
+                  'Construisez votre profil professionnel',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                    letterSpacing: -0.5,
                   ),
                 ),
-                const SizedBox(height: 20),
-
-                // 2. Texte de consigne
-                const Text(
-                  'Renseignez vos expériences et compétences afin de construire automatiquement votre portfolio professionnel',
+                const SizedBox(height: 6),
+                Text(
+                  'Renseignez vos compétences et expériences afin de générer automatiquement votre portfolio ODC visible par les recruteurs.',
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                    height: 1.3,
+                    fontSize: 14,
+                    color: Colors.grey.shade600,
+                    height: 1.35,
                   ),
                 ),
                 const SizedBox(height: 24),
 
-                // 3. Section "À propos de moi"
+                // 1. Titre professionnel
+                _buildSectionCard(
+                  icon: Icons.badge_outlined,
+                  title: 'Titre professionnel',
+                  subtitle: 'Votre métier ou spécialité principale',
+                  hintText: 'Ex: Développeur Flutter & Mobile, Fullstack Spring Boot...',
+                  controller: _titreProfessionnelController,
+                  maxLines: 1,
+                ),
+                const SizedBox(height: 18),
+
+                // 2. Section "À propos de moi"
                 _buildSectionCard(
                   icon: Icons.person_outline_rounded,
-                  title: 'A propos de moi',
-                  subtitle: 'Decrivez en bref',
-                  hintText:
-                      'Ex: Passionné par le développement web, je crée des sites et applications...............',
+                  title: 'À propos de moi',
+                  subtitle: 'Présentez brièvement vos ambitions et centres d\'intérêt',
+                  hintText: 'Ex: Passionné par le développement d\'applications mobiles et les architectures backend performantes...',
                   controller: _aProposController,
+                  maxLines: 3,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 18),
 
-                // 4. Section "Expériences"
+                // 3. Section "Expériences"
                 _buildSectionCard(
                   icon: Icons.work_outline_rounded,
                   title: 'Expériences',
-                  subtitle:
-                      'Ajoutez vos expériences professionnelles (emplois, stages, etc.).',
-                  hintText:
-                      'Ex: Développeur web pendant 2 ans, spécialisé dans la création de sites et d’applications web',
+                  subtitle: 'Vos stages, projets d\'études ou missions antérieures',
+                  hintText: 'Ex: Projet académique de 6 mois, stage de développement à Orange Digital Center...',
                   controller: _experiencesController,
+                  maxLines: 3,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 18),
 
-                // 5. Section "Compétences"
+                // 4. Section "Compétences"
                 _buildSectionCard(
                   icon: Icons.layers_outlined,
-                  title: 'Competences',
-                  subtitle:
-                      'Ajoutez vos expériences professionnelles (emplois, stages, etc.).',
-                  hintText: 'Ex: Sprint boot, python,Html, Css.......',
+                  title: 'Compétences clés',
+                  subtitle: 'Séparez vos compétences par une virgule',
+                  hintText: 'Ex: Flutter, Dart, Spring Boot, MySQL, Git, Docker, REST API',
                   controller: _competencesController,
+                  maxLines: 2,
                 ),
                 const SizedBox(height: 30),
 
-                // 6. Bouton de validation
+                // 5. Bouton de validation
                 SizedBox(
                   width: double.infinity,
+                  height: 52,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _primaryOrange,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25),
-                      ),
                       elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(26),
+                      ),
                     ),
                     onPressed: _isLoading ? null : _submitPortfolio,
                     child: _isLoading
@@ -159,7 +199,7 @@ class _PortfolioFormPageState extends State<PortfolioFormPage> {
                             ),
                           )
                         : const Text(
-                            'Générer mon portfolio',
+                            'Générer mon portfolio & Continuer',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 16,
@@ -168,7 +208,7 @@ class _PortfolioFormPageState extends State<PortfolioFormPage> {
                           ),
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
               ],
             ),
           ),
@@ -177,39 +217,37 @@ class _PortfolioFormPageState extends State<PortfolioFormPage> {
     );
   }
 
-  /// Widget réutilisable pour créer les cartes du formulaire
   Widget _buildSectionCard({
     required IconData icon,
     required String title,
     required String subtitle,
     required String hintText,
     required TextEditingController controller,
+    int maxLines = 3,
   }) {
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E7EB), width: 1.5),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 6, offset: const Offset(0, 2)),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header de la carte : Icône + Titre + Sous-titre
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF3F4F6),
+                  color: _primaryOrange.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
-                  icon,
-                  color: _primaryOrange,
-                  size: 24,
-                ),
+                child: Icon(icon, color: _primaryOrange, size: 22),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -219,17 +257,17 @@ class _PortfolioFormPageState extends State<PortfolioFormPage> {
                     Text(
                       title,
                       style: const TextStyle(
-                        fontSize: 18,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF1F2937),
+                        color: Colors.black87,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF6B7280),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
                       ),
                     ),
                   ],
@@ -237,12 +275,11 @@ class _PortfolioFormPageState extends State<PortfolioFormPage> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
-          // Zone de saisie multi-lignes
           TextFormField(
             controller: controller,
-            maxLines: 4,
+            maxLines: maxLines,
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
                 return 'Ce champ est requis';
@@ -252,10 +289,7 @@ class _PortfolioFormPageState extends State<PortfolioFormPage> {
             style: const TextStyle(fontSize: 14, color: Colors.black87),
             decoration: InputDecoration(
               hintText: hintText,
-              hintStyle: const TextStyle(
-                color: Color(0xFF9CA3AF),
-                fontSize: 13,
-              ),
+              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
               filled: true,
               fillColor: const Color(0xFFFAFAFA),
               contentPadding: const EdgeInsets.all(14),

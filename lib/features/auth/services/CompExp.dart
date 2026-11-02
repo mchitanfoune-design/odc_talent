@@ -1,30 +1,54 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
+import 'package:odc_talent/core/network/dio_client.dart';
 
-class Compexp {
-  static const String baseUrl = 'http://10.0.2.2:8080/api/v1/portfolio';
+class CompExpApiService {
+  final DioClient _dioClient;
 
-  /// Envoie les données du formulaire pour créer le portfolio
-  static Future<http.Response> createPortfolio({
+  CompExpApiService({DioClient? dioClient}) : _dioClient = dioClient ?? DioClient();
+
+  /// Enregistre les compétences, expériences et la biographie auprès de Spring Boot
+  Future<void> saveCompetencesAndExperiences({
     required String aPropos,
     required String experiences,
     required String competences,
+    String? titreProfessionnel,
+    bool disponibilite = true,
   }) async {
-    final Uri url = Uri.parse(baseUrl);
+    final List<String> competencesList = competences
+        .split(RegExp(r'[,;]'))
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
 
-    return await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        // Ajoute les en-têtes d'autorisation JWT si nécessaire :
-        // 'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'aPropos': aPropos,
-        'experiences': experiences,
-        'competences': competences,
-      }),
-    );
+    try {
+      // 1. Mise à jour du profil apprenant (PUT /api/v1/apprenants/profile)
+      await _dioClient.dio.put(
+        '/apprenants/profile',
+        data: {
+          'biographie': aPropos,
+          'experiences': experiences,
+          'competences': competencesList,
+          'disponibilite': disponibilite,
+        },
+      );
+
+      // 2. Synchronisation du portfolio (PUT /api/v1/portfolios/me)
+      await _dioClient.dio.put(
+        '/portfolios/me',
+        data: {
+          'bio': aPropos,
+          'competences': competences,
+          'titreProfessionnel': titreProfessionnel ?? 'Développeur Web & Mobile',
+        },
+      );
+    } on DioException catch (e) {
+      if (e.response?.data != null && e.response?.data is Map) {
+        final data = e.response!.data;
+        if (data.containsKey('message')) {
+          throw Exception(data['message']);
+        }
+      }
+      throw Exception('Impossible d\'enregistrer vos compétences.');
+    }
   }
 }
