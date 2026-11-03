@@ -193,6 +193,13 @@ class _AccueilApprenantPageState extends State<AccueilApprenantPage> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: primaryOrange.withOpacity(0.22),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -204,7 +211,7 @@ class _AccueilApprenantPageState extends State<AccueilApprenantPage> {
           const SizedBox(height: 8),
           Text(
             'Continuez votre parcours ODC et développez votre réseau professionnel.',
-            style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 14),
+            style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 14, height: 1.4),
           ),
           const SizedBox(height: 18),
           Row(
@@ -261,29 +268,39 @@ class _AccueilApprenantPageState extends State<AccueilApprenantPage> {
         final action = actions[index];
         return InkWell(
           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => action.page)),
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(20),
           child: Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(20),
               border: Border.all(color: Colors.grey.shade200),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.02),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  width: 38,
-                  height: 38,
+                  width: 42,
+                  height: 42,
                   decoration: BoxDecoration(
                     color: primaryOrange.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Icon(action.icon, color: primaryOrange),
+                  child: Icon(action.icon, color: primaryOrange, size: 22),
                 ),
                 const SizedBox(height: 10),
-                Text(action.label, style: const TextStyle(fontWeight: FontWeight.w700)),
+                Text(
+                  action.label,
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                ),
               ],
             ),
           ),
@@ -306,11 +323,18 @@ class _AccueilApprenantPageState extends State<AccueilApprenantPage> {
   Widget _buildNewsCard(Actualite actualite) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -318,7 +342,7 @@ class _AccueilApprenantPageState extends State<AccueilApprenantPage> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: primaryOrange.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(999),
@@ -336,7 +360,10 @@ class _AccueilApprenantPageState extends State<AccueilApprenantPage> {
             ],
           ),
           const SizedBox(height: 10),
-          Text(actualite.titre ?? 'Actualité', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+          Text(
+            actualite.titre ?? 'Actualité',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          ),
           const SizedBox(height: 6),
           Text(
             actualite.description ?? '',
@@ -355,11 +382,18 @@ class _AccueilApprenantPageState extends State<AccueilApprenantPage> {
       ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -373,7 +407,7 @@ class _AccueilApprenantPageState extends State<AccueilApprenantPage> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: const Color(0xFF10B981).withOpacity(0.12),
                     borderRadius: BorderRadius.circular(999),
@@ -396,7 +430,22 @@ class _AccueilApprenantPageState extends State<AccueilApprenantPage> {
             Wrap(
               spacing: 6,
               runSpacing: 6,
-              children: mission.competencesList.take(3).map((skill) => Chip(label: Text(skill), visualDensity: VisualDensity.compact)).toList(),
+              children: mission.competencesList
+                  .take(3)
+                  .map(
+                    (skill) => Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F4F6),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        skill,
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  )
+                  .toList(),
             ),
           ],
         ),
@@ -410,8 +459,15 @@ class _AccueilApprenantPageState extends State<AccueilApprenantPage> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -430,7 +486,10 @@ class _AccueilApprenantPageState extends State<AccueilApprenantPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(projet.titre, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                Text(
+                  projet.titre,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                ),
                 const SizedBox(height: 4),
                 Text(
                   projet.description,

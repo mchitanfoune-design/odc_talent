@@ -3,6 +3,7 @@ import 'package:odc_talent/core/constants/constant.dart';
 import 'package:odc_talent/features/apprenants/models/portfolio_response_model.dart';
 import 'package:odc_talent/features/apprenants/models/projet_response_model.dart';
 import 'package:odc_talent/features/apprenants/services/dashboardService.dart';
+import 'package:odc_talent/features/apprenants/services/disponibilite_state.dart';
 import 'package:odc_talent/features/apprenants/services/portfolio.dart';
 
 class PortfolioScreen extends StatefulWidget {
@@ -19,6 +20,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   String _selectedLanguage = 'Français';
+  bool _isDisponible = DisponibiliteState.current;
 
   PortfolioResponseModel? _portfolio;
   List<ProjetResponseModel> _projets = [];
@@ -34,7 +36,21 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
   @override
   void initState() {
     super.initState();
+    DisponibiliteState.load();
+    _isDisponible = DisponibiliteState.current;
+    DisponibiliteState.notifier.addListener(_onDisponibiliteChanged);
     _loadPortfolioData();
+  }
+
+  void _onDisponibiliteChanged() {
+    if (!mounted) return;
+    setState(() => _isDisponible = DisponibiliteState.current);
+  }
+
+  @override
+  void dispose() {
+    DisponibiliteState.notifier.removeListener(_onDisponibiliteChanged);
+    super.dispose();
   }
 
   Future<void> _loadPortfolioData() async {
@@ -480,7 +496,10 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                         children: [
                           _buildHeaderMeta(Icons.mail_outline_rounded, p?.emailApprenant.isNotEmpty ?? false ? p!.emailApprenant : 'Email ODC'),
                           _buildHeaderMeta(Icons.location_on_outlined, 'Mali, Bamako'),
-                          _buildHeaderMeta(Icons.verified_user_outlined, 'Disponible'),
+                          _buildHeaderMeta(
+                            Icons.verified_user_outlined,
+                            _isDisponible ? 'Disponible' : 'Indisponible',
+                          ),
                         ],
                       ),
 

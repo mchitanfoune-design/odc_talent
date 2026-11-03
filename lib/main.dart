@@ -22,6 +22,7 @@ import 'package:odc_talent/features/auth/pages/login_page.dart';
 import 'package:odc_talent/features/auth/pages/page_accueil.dart';
 import 'package:odc_talent/features/auth/pages/registre_page.dart';
 import 'package:odc_talent/features/apprenants/pages/mes_candidatures.dart';
+import 'package:odc_talent/features/apprenants/widgets/apprenant_home_shell.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,11 +47,11 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/dashboard',
-      builder: (context, state) => const DashboardApprenantPage(),
+      builder: (context, state) => const ApprenantHomeShell(),
     ),
     GoRoute(
       path: '/accueil',
-      builder: (context, state) => const AccueilApprenantPage(),
+      builder: (context, state) => const ApprenantHomeShell(),
     ),
     GoRoute(
       path: '/ajout-projet',

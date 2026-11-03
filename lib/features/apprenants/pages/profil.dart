@@ -7,6 +7,7 @@ import 'package:odc_talent/features/apprenants/pages/mes_projets.dart';
 import 'package:odc_talent/features/apprenants/pages/notifications.dart';
 import 'package:odc_talent/features/apprenants/pages/portfolio.dart';
 import 'package:odc_talent/features/apprenants/services/dashboardService.dart';
+import 'package:odc_talent/features/apprenants/services/disponibilite_state.dart';
 import 'package:odc_talent/features/apprenants/services/portfolio.dart';
 import 'package:odc_talent/features/auth/services/CompExp.dart';
 import 'package:odc_talent/features/auth/services/auth_service.dart';
@@ -25,7 +26,7 @@ class _ProfilApprenantPageState extends State<ProfilApprenantPage> {
   final AuthService _authService = AuthService();
 
   bool _isLoading = true;
-  bool _isAvailable = true;
+  bool _isAvailable = DisponibiliteState.current;
 
   String _prenom = "";
   String _nom = "";
@@ -41,6 +42,8 @@ class _ProfilApprenantPageState extends State<ProfilApprenantPage> {
   @override
   void initState() {
     super.initState();
+    DisponibiliteState.load();
+    _isAvailable = DisponibiliteState.current;
     _loadProfileData();
   }
 
@@ -71,6 +74,7 @@ class _ProfilApprenantPageState extends State<ProfilApprenantPage> {
 
   Future<void> _toggleDisponibilite(bool value) async {
     setState(() => _isAvailable = value);
+    await DisponibiliteState.set(value);
 
     try {
       await _compExpService.saveCompetencesAndExperiences(
@@ -92,8 +96,8 @@ class _ProfilApprenantPageState extends State<ProfilApprenantPage> {
         );
       }
     } catch (_) {
-      // Revenir à la valeur précédente en cas d'erreur
       setState(() => _isAvailable = !value);
+      await DisponibiliteState.set(!value);
     }
   }
 
