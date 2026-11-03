@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:odc_talent/core/constants/constant.dart';
-import 'package:odc_talent/features/apprenants/pages/dasboard.dart';
+import 'package:odc_talent/features/apprenants/widgets/apprenant_home_shell.dart';
 import 'package:odc_talent/features/auth/pages/registre_page.dart';
 import 'package:odc_talent/features/auth/services/auth_service.dart';
 
@@ -60,7 +60,7 @@ class _LoginPageState extends State<LoginPage> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => const DashboardApprenantPage(),
+          builder: (context) => const ApprenantHomeShell(),
         ),
       );
     } catch (e) {

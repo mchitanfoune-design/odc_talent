@@ -44,7 +44,19 @@ class _ProfilApprenantPageState extends State<ProfilApprenantPage> {
     super.initState();
     DisponibiliteState.load();
     _isAvailable = DisponibiliteState.current;
+    DisponibiliteState.notifier.addListener(_onDisponibiliteChanged);
     _loadProfileData();
+  }
+
+  void _onDisponibiliteChanged() {
+    if (!mounted) return;
+    setState(() => _isAvailable = DisponibiliteState.current);
+  }
+
+  @override
+  void dispose() {
+    DisponibiliteState.notifier.removeListener(_onDisponibiliteChanged);
+    super.dispose();
   }
 
   Future<void> _loadProfileData() async {
@@ -167,10 +179,14 @@ class _ProfilApprenantPageState extends State<ProfilApprenantPage> {
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(22),
                   border: Border.all(color: Colors.grey.shade200),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 2)),
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.03),
+                      blurRadius: 12,
+                      offset: const Offset(0, 3),
+                    ),
                   ],
                 ),
                 child: Column(
@@ -250,8 +266,15 @@ class _ProfilApprenantPageState extends State<ProfilApprenantPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(18),
                   border: Border.all(color: Colors.grey.shade200),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.02),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -287,6 +310,8 @@ class _ProfilApprenantPageState extends State<ProfilApprenantPage> {
                       value: _isAvailable,
                       activeColor: primaryOrange,
                       onChanged: _toggleDisponibilite,
+                      activeTrackColor: primaryOrange.withOpacity(0.25),
+                      inactiveTrackColor: Colors.grey.shade300,
                     ),
                   ],
                 ),
@@ -300,8 +325,15 @@ class _ProfilApprenantPageState extends State<ProfilApprenantPage> {
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: Colors.grey.shade200),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.02),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Column(
                   children: [
